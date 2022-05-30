@@ -1,5 +1,4 @@
-import { createQueryBuilder, getConnection, getRepository, Repository } from 'typeorm';
-import { Game } from '../../../games/entities/Game';
+import { getRepository, Repository } from 'typeorm';
 
 import { IFindUserWithGamesDTO, IFindUserByFullNameDTO } from '../../dtos';
 import { User } from '../../entities/User';
@@ -11,23 +10,30 @@ export class UsersRepository implements IUsersRepository {
   constructor() {
     this.repository = getRepository(User);
   }
-
+  
   async findUserWithGamesById({
     user_id,
   }: IFindUserWithGamesDTO): Promise<User | undefined> {
-    const userWithGames = await this.repository.findOne(user_id);
-
-    return userWithGames;
+    return await this.repository.findOneOrFail(
+      user_id, {
+      relations: ["games"]
+    })
   }
-
-  async findAllUsersOrderedByFirstName(): Promise<User[]> {
-    return this.repository.query(); // Complete usando raw query
-  }
-
+    
+  async findAllUsersOrderedByFirstName( ): Promise<User[]> {
+      return await this.repository.query(
+        'SELECT * FROM users ORDER BY first_name ASC'
+      ); // Complete usando raw query
+    }
+    
   async findUserByFullName({
     first_name,
     last_name,
   }: IFindUserByFullNameDTO): Promise<User[] | undefined> {
-    return this.repository.query(); // Complete usando raw query
+    return await this.repository.query(
+      'SELECT * FROM users WHERE LOWER(first_name) = $1 AND LOWER(last_name) = $2',
+      [first_name.toLowerCase(), last_name.toLowerCase()]
+    );  // Complete usando raw query
   }
+
 }
